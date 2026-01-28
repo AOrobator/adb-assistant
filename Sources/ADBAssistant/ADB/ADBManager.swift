@@ -51,14 +51,23 @@ public class ADBManager: ObservableObject {
             // 2. If selected device is no longer connected, select another if available
             // 3. If selected device is still connected, keep it
             
+            var didSelectNewDevice = false
+            
             if selectedDevice == nil && newDevices.count == 1 {
                 // Auto-select the only device
                 selectedDevice = newDevices.first
+                didSelectNewDevice = true
             } else if let current = selectedDevice, !newDevices.contains(where: { $0.id == current.id }) {
                 // Selected device disconnected, try to select another
                 selectedDevice = newDevices.first
+                didSelectNewDevice = (selectedDevice != nil)
             }
             // Otherwise keep current selection
+            
+            // Auto-start log streaming if we selected a new device and not already streaming
+            if didSelectNewDevice && !isConnected && selectedDevice != nil {
+                try? await startLogcat()
+            }
         } catch {
             connectionError = error.localizedDescription
         }
