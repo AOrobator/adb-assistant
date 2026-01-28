@@ -6,6 +6,60 @@
 
 ---
 
+## Constitutional Invariants
+
+> These are verifiable conditions that MUST always hold. If an implementation violates any invariant, it is incomplete.
+
+| ID | Invariant | Why |
+|----|-----------|-----|
+| **INV-1** | No log entry is lost during pause/resume | Debugging requires complete log history |
+| **INV-2** | ADB disconnect is detected within 500ms | Users need immediate feedback on connection state |
+| **INV-3** | 60fps scrolling with 100k buffered entries | Performance affects debugging flow |
+| **INV-4** | JSON is automatically detected and expandable | This is our key differentiator |
+| **INV-5** | Package-first filtering by default | PID tracking is error-prone (pidcat insight) |
+| **INV-6** | Keyboard shortcuts work without mouse | Power user requirement |
+
+---
+
+## NOT in MVP
+
+- Multiple device support (tabs) — v2
+- Wireless ADB pairing — v2
+- Scrcpy integration — v2
+- APK installation — v2
+- Shell command execution — v2
+- Log persistence/sessions — v2
+- Crash reporting integration — v2
+- Team sharing features — v2
+
+---
+
+## Worklog Template
+
+```markdown
+# Feature: [Feature Name]
+
+## Milestones
+- [ ] M1: [First atomic change]
+- [ ] M2: [Second atomic change]
+- [ ] M3: [Third atomic change]
+
+## Invariants
+- **INV-1:** [Reference relevant invariant]
+- **INV-2:** [Reference relevant invariant]
+
+## Skills Loaded
+- `/adb-logcat` — for log parsing patterns
+- `/swift-macos` — for SwiftUI patterns
+
+## Session Log
+### Session 1 (YYYY-MM-DD)
+- Started feature development
+- **Next:** Complete M1
+```
+
+---
+
 ## Vision
 
 Replace Android Studio's logcat for 90% of debugging workflows. Fast, focused, native. You open it, pick your app, and read logs that are actually readable.
@@ -302,16 +356,7 @@ Android developer who wants to debug their app without opening Android Studio.
 
 ---
 
-## Non-Goals (v1)
 
-- Multiple device support (tabs) — v2
-- Wireless ADB pairing — v2
-- Scrcpy integration — v2
-- APK installation — v2
-- Shell command execution — v2
-- Log persistence/sessions — v2
-- Crash reporting integration — v2
-- Team sharing features — v2
 
 ---
 
