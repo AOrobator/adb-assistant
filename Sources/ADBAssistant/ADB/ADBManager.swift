@@ -34,8 +34,8 @@ public class ADBManager: ObservableObject {
             await refreshDevicesWithAutoSelect()
         }
         
-        // Set up periodic refresh every 0.5 seconds for faster detection
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Set up periodic refresh every 2 seconds (not too frequent to avoid performance issues)
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.refreshDevicesWithAutoSelect()
             }

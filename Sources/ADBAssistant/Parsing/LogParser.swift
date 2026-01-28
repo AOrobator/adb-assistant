@@ -17,9 +17,17 @@ public struct LogParser {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         
-        // Skip "--------- beginning of ..." lines
+        // Handle "--------- beginning of ..." lines as special marker entries
         if trimmed.hasPrefix("---------") {
-            return nil
+            return LogEntry(
+                timestamp: Date(),
+                level: .info,
+                tag: "Logcat",
+                pid: 0,
+                tid: 0,
+                message: trimmed,
+                rawLine: trimmed
+            )
         }
         
         // Try to parse threadtime format: "01-28 15:42:01.234  1234  5678 D Tag: message"

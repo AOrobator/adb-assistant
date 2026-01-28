@@ -5,29 +5,94 @@ struct LogListView: View {
     @EnvironmentObject var logBuffer: LogBuffer
     @State private var selectedEntry: LogEntry?
     @State private var expandedJSONEntries: Set<UUID> = []
+    @State private var isAutoScrollEnabled = true
+    @State private var hasUserScrolled = false
     
     var body: some View {
         ScrollViewReader { proxy in
-            List(selection: $selectedEntry) {
-                ForEach(logBuffer.filteredEntries) { entry in
-                    LogRowView(
-                        entry: entry,
-                        isExpanded: expandedJSONEntries.contains(entry.id),
-                        onToggleJSON: {
-                            toggleJSON(for: entry)
+            VStack(spacing: 0) {
+                // Auto-scroll toggle
+                HStack {
+                    Toggle("Auto-scroll", isOn: $isAutoScrollEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .onChange(of: isAutoScrollEnabled) { newValue in
+                            if newValue {
+                                // Re-enable auto-scroll and scroll to bottom
+                                hasUserScrolled = false
+                                if let lastEntry = logBuffer.filteredEntries.last {
+                                    withAnimation {
+                                        proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                                    }
+                                }
+                            }
                         }
-                    )
-                    .id(entry.id)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                    .listRowSeparator(.hidden)
-                    .background(entryBackground(for: entry))
+                    
+                    Spacer()
+                    
+                    if logBuffer.isPaused {
+                        Button("Resume") {
+                            logBuffer.resume()
+                            isAutoScrollEnabled = true
+                            hasUserScrolled = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.secondary.opacity(0.05))
+                
+                // Log list
+                List(selection: $selectedEntry) {
+                    ForEach(logBuffer.filteredEntries) { entry in
+                        LogRowView(
+                            entry: entry,
+                            isExpanded: expandedJSONEntries.contains(entry.id),
+                            onToggleJSON: {
+                                toggleJSON(for: entry)
+                            }
+                        )
+                        .id(entry.id)
+                        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                        .listRowSeparator(.hidden)
+                        .background(entryBackground(for: entry))
+                    }
+                }
+                .listStyle(.plain)
+                .onChange(of: logBuffer.filteredEntries.count) { _ in
+                    // Auto-scroll to bottom when new entries arrive (if enabled)
+                    if isAutoScrollEnabled && !hasUserScrolled && !logBuffer.isPaused {
+                        if let lastEntry = logBuffer.filteredEntries.last {
+                            withAnimation(.easeOut(duration: 0.1)) {
+                                proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    // Scroll to bottom on initial load
+                    if let lastEntry = logBuffer.filteredEntries.last {
+                        proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                    }
+                }
+                .simultaneousGesture(
+                    DragGesture().onChanged { _ in
+                        // Detect user scrolling to disable auto-scroll
+                        if isAutoScrollEnabled {
+                            hasUserScrolled = true
+                            isAutoScrollEnabled = false
+                        }
+                    }
+                )
             }
-            .listStyle(.plain)
             .overlay(alignment: .bottom) {
                 if logBuffer.isPaused && logBuffer.newLogCount > 0 {
                     ResumeButton(count: logBuffer.newLogCount) {
                         logBuffer.resume()
+                        isAutoScrollEnabled = true
+                        hasUserScrolled = false
                     }
                     .padding(.bottom, 16)
                 }
