@@ -186,9 +186,10 @@ struct LogRowView: View {
     
     private func tagColor(for tag: String) -> Color {
         // Generate consistent color based on tag hash
+        // Use simple hash algorithm that won't overflow
         var hash = 0
-        for char in tag.unicodeScalars {
-            hash = Int(char.value) + ((hash << 5) - hash)
+        for char in tag.utf8 {
+            hash = (hash &* 31) &+ Int(char)
         }
         
         let hue = Double(abs(hash) % 360) / 360.0

@@ -13,9 +13,9 @@ struct ADBAssistantApp: App {
                 .environmentObject(adbManager)
                 .environmentObject(logBuffer)
         }
-        .windowStyle(.titleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 900, height: 600)
+        .windowStyle(.automatic)
+        .defaultSize(width: 1200, height: 800)
+        .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About ADB Assistant") {
