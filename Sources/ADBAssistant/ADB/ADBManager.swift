@@ -34,8 +34,8 @@ public class ADBManager: ObservableObject {
             await refreshDevicesWithAutoSelect()
         }
         
-        // Set up periodic refresh every 2 seconds
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        // Set up periodic refresh every 0.5 seconds for faster detection
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.refreshDevicesWithAutoSelect()
             }
@@ -53,8 +53,8 @@ public class ADBManager: ObservableObject {
             
             var didSelectNewDevice = false
             
-            if selectedDevice == nil && newDevices.count == 1 {
-                // Auto-select the only device
+            // Auto-select logic: if no device selected but devices are available, pick the first one
+            if selectedDevice == nil && !newDevices.isEmpty {
                 selectedDevice = newDevices.first
                 didSelectNewDevice = true
             } else if let current = selectedDevice, !newDevices.contains(where: { $0.id == current.id }) {
@@ -131,6 +131,7 @@ public class ADBManager: ObservableObject {
             
             let lines = output.components(separatedBy: .newlines)
             for line in lines {
+                guard !line.isEmpty else { continue }
                 guard let entry = LogParser.parseLine(line) else { continue }
                 Task { @MainActor in
                     self.logSubject.send(entry)

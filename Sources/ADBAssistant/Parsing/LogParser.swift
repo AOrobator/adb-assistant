@@ -17,7 +17,13 @@ public struct LogParser {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         
+        // Skip "--------- beginning of ..." lines
+        if trimmed.hasPrefix("---------") {
+            return nil
+        }
+        
         // Try to parse threadtime format: "01-28 15:42:01.234  1234  5678 D Tag: message"
+        // Also handles: "01-28 15:42:01.234   232   232 I vold    : Vold 3.0 firing up"
         let pattern = "^(\\d{2}-\\d{2})\\s+(\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\d+)\\s+(\\d+)\\s+([VDIWEFS])\\s+([^:]+):\\s*(.*)$"
         
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []),

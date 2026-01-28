@@ -40,6 +40,9 @@ struct ContentView: View {
                 await adbManager.refreshDevices()
             }
         }
+        .onReceive(adbManager.logStream) { entry in
+            logBuffer.append(entry)
+        }
         .onChange(of: searchText) { _ in
             updateFilter()
         }
