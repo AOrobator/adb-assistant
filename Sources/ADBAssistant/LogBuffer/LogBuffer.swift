@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Thread-safe circular buffer for log entries
+/// Thread-safe circular buffer for log entries with batched UI updates
 @MainActor
 public class LogBuffer: ObservableObject {
     
@@ -18,13 +18,19 @@ public class LogBuffer: ObservableObject {
     private var filter: LogFilter = LogFilter()
     private var pendingEntries: [LogEntry] = []
     
+    // Batching for performance
+    private var batchBuffer: [LogEntry] = []
+    private var batchTimer: Timer?
+    private let batchInterval: TimeInterval = 1.0 / 60.0  // 60fps max
+    private let batchSize = 100  // Max entries per batch
+    
     public init(maxSize: Int = 50000) {
         self.maxSize = maxSize
     }
     
     // MARK: - Buffer Operations
     
-    /// Appends a log entry to the buffer
+    /// Appends a log entry to the buffer (batched for performance)
     public func append(_ entry: LogEntry) {
         if isPaused {
             pendingEntries.append(entry)
@@ -32,37 +38,67 @@ public class LogBuffer: ObservableObject {
             return
         }
         
-        // Add to circular buffer
-        if buffer.count < maxSize {
-            buffer.append(entry)
-        } else {
-            buffer[writeIndex] = entry
+        // Add to batch buffer (no UI update yet)
+        batchBuffer.append(entry)
+        
+        // Schedule batch flush if not already scheduled
+        if batchTimer == nil {
+            batchTimer = Timer.scheduledTimer(withTimeInterval: batchInterval, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    self?.flushBatch()
+                }
+            }
         }
         
-        writeIndex = (writeIndex + 1) % maxSize
-        if writeIndex == 0 {
-            isFull = true
+        // Flush immediately if batch is full
+        if batchBuffer.count >= batchSize {
+            flushBatch()
         }
-        
-        // Update published entries
-        updateEntries()
     }
     
-    /// Appends multiple entries
+    /// Appends multiple entries efficiently
     public func append(_ newEntries: [LogEntry]) {
         for entry in newEntries {
             append(entry)
         }
     }
     
+    /// Flushes pending batch to UI
+    private func flushBatch() {
+        guard !batchBuffer.isEmpty else { return }
+        
+        let batch = batchBuffer
+        batchBuffer.removeAll(keepingCapacity: true)
+        batchTimer?.invalidate()
+        batchTimer = nil
+        
+        // Add to circular buffer
+        for entry in batch {
+            if buffer.count < maxSize {
+                buffer.append(entry)
+            } else {
+                buffer[writeIndex] = entry
+            }
+            writeIndex = (writeIndex + 1) % maxSize
+            if writeIndex == 0 {
+                isFull = true
+            }
+        }
+        
+        // Single UI update with all batched entries
+        updateEntries()
+    }
+    
     /// Clears the buffer
     public func clear() {
+        flushBatch()  // Flush any pending first
         buffer.removeAll()
         writeIndex = 0
         isFull = false
         pendingEntries.removeAll()
         newLogCount = 0
-        updateEntries()
+        entries.removeAll()
+        filteredEntries.removeAll()
     }
     
     // MARK: - Pause/Resume
@@ -76,12 +112,14 @@ public class LogBuffer: ObservableObject {
     public func resume() {
         isPaused = false
         
-        // Apply pending entries
-        for entry in pendingEntries {
-            append(entry)
-        }
+        // Apply pending entries in batch
+        let pending = pendingEntries
         pendingEntries.removeAll()
         newLogCount = 0
+        
+        for entry in pending {
+            append(entry)
+        }
     }
     
     // MARK: - Filtering

@@ -63,10 +63,14 @@ struct LogListView: View {
                 .listStyle(.plain)
                 .onChange(of: logBuffer.filteredEntries.count) { _ in
                     // Auto-scroll to bottom when new entries arrive (if enabled)
+                    // Use async to not block the UI update
                     if isAutoScrollEnabled && !hasUserScrolled && !logBuffer.isPaused {
-                        if let lastEntry = logBuffer.filteredEntries.last {
-                            withAnimation(.easeOut(duration: 0.1)) {
-                                proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 10_000_000)  // 10ms delay for UI to settle
+                            if let lastEntry = logBuffer.filteredEntries.last {
+                                withAnimation(.easeOut(duration: 0.1)) {
+                                    proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                                }
                             }
                         }
                     }

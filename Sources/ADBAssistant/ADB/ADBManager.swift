@@ -122,25 +122,51 @@ public class ADBManager: ObservableObject {
         process.standardOutput = outputPipe
         process.standardError = errorPipe
         
-        // Handle output
+        // Handle output - process on background thread, batch send to main
         outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             guard let self = self else { return }
             let data = handle.availableData
             guard let output = String(data: data, encoding: .utf8),
                   !output.isEmpty else { return }
             
-            let lines = output.components(separatedBy: .newlines)
-            for line in lines {
-                guard !line.isEmpty else { continue }
-                guard let entry = LogParser.parseLine(line) else { continue }
-                Task { @MainActor in
-                    self.logSubject.send(entry)
+            // Parse on background thread
+            Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { return }
+                
+                var entries: [LogEntry] = []
+                let lines = output.components(separatedBy: .newlines)
+                
+                for line in lines {
+                    guard !line.isEmpty else { continue }
+                    guard let entry = LogParser.parseLine(line) else { continue }
+                    entries.append(entry)
+                    
+                    // Batch: send every 50 entries to avoid overwhelming main thread
+                    if entries.count >= 50 {
+                        let batch = entries
+                        entries.removeAll(keepingCapacity: true)
+                        await MainActor.run {
+                            for entry in batch {
+                                self.logSubject.send(entry)
+                            }
+                        }
+                    }
                 }
-            }
-            
-            // Reset disconnect timer on data received
-            Task { @MainActor in
-                self.resetDisconnectTimer()
+                
+                // Send remaining entries
+                if !entries.isEmpty {
+                    let batch = entries
+                    await MainActor.run {
+                        for entry in batch {
+                            self.logSubject.send(entry)
+                        }
+                    }
+                }
+                
+                // Reset disconnect timer on data received
+                await MainActor.run {
+                    self.resetDisconnectTimer()
+                }
             }
         }
         
