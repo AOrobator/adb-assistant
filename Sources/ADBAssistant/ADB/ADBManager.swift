@@ -21,7 +21,48 @@ public class ADBManager: ObservableObject {
         logSubject.eraseToAnyPublisher()
     }
     
-    public init() {}
+    public init() {
+        // Start auto-refresh timer for device detection
+        startDeviceRefreshTimer()
+    }
+    
+    private var refreshTimer: Timer?
+    
+    private func startDeviceRefreshTimer() {
+        // Initial refresh
+        Task {
+            await refreshDevicesWithAutoSelect()
+        }
+        
+        // Set up periodic refresh every 2 seconds
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshDevicesWithAutoSelect()
+            }
+        }
+    }
+    
+    private func refreshDevicesWithAutoSelect() async {
+        do {
+            let newDevices = try await listDevices()
+            
+            // Auto-select logic:
+            // 1. If no device selected and there's only one device, select it
+            // 2. If selected device is no longer connected, select another if available
+            // 3. If selected device is still connected, keep it
+            
+            if selectedDevice == nil && newDevices.count == 1 {
+                // Auto-select the only device
+                selectedDevice = newDevices.first
+            } else if let current = selectedDevice, !newDevices.contains(where: { $0.id == current.id }) {
+                // Selected device disconnected, try to select another
+                selectedDevice = newDevices.first
+            }
+            // Otherwise keep current selection
+        } catch {
+            connectionError = error.localizedDescription
+        }
+    }
     
     // MARK: - Device Management
     
