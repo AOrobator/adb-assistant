@@ -12,16 +12,20 @@ public class LogBuffer: ObservableObject {
     @Published public private(set) var droppedWhilePaused: Int = 0
     
     public let maxSize: Int
-    
+    @Published public private(set) var isFiltering: Bool = false
+
     private var filter: LogFilter = LogFilter()
     private var pendingEntries: [LogEntry] = []
     private let maxPendingEntries = 10_000
-    
+
     // Batching for performance
     private var batchBuffer: [LogEntry] = []
     private var batchTimer: DispatchSourceTimer?
     private let batchInterval: TimeInterval = 1.0 / 60.0  // 60fps max
     private let batchSize = 100  // Max entries per batch
+
+    // Filter update task (for cancellation on rapid changes)
+    private var filterTask: Task<Void, Never>?
     
     public init(maxSize: Int = 50000) {
         self.maxSize = maxSize
@@ -54,6 +58,9 @@ public class LogBuffer: ObservableObject {
     
     /// Clears the buffer
     public func clear() {
+        filterTask?.cancel()
+        filterTask = nil
+        isFiltering = false
         flushBatch()  // Flush any pending first
         pendingEntries.removeAll()
         newLogCount = 0
@@ -85,13 +92,38 @@ public class LogBuffer: ObservableObject {
     }
     
     // MARK: - Filtering
-    
-    /// Updates the filter and refreshes displayed entries
+
+    /// Updates the filter and refreshes displayed entries asynchronously
     public func setFilter(_ newFilter: LogFilter) {
         filter = newFilter
-        updateFilteredEntries()
+        updateFilteredEntriesAsync()
     }
-    
+
+    private func updateFilteredEntriesAsync() {
+        // Cancel any in-flight filter task
+        filterTask?.cancel()
+        isFiltering = true
+
+        let currentEntries = entries
+        let currentFilter = filter
+
+        filterTask = Task { [weak self] in
+            // Move heavy filtering to background thread
+            let filtered = await Task.detached(priority: .userInitiated) {
+                currentEntries.filter { currentFilter.matches($0) }
+            }.value
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run { [weak self] in
+                guard let self, !Task.isCancelled else { return }
+                self.filteredEntries = filtered
+                self.isFiltering = false
+            }
+        }
+    }
+
+    /// Synchronous filter update for incremental batch appends
     private func updateFilteredEntries() {
         filteredEntries = entries.filter { filter.matches($0) }
     }

@@ -76,52 +76,61 @@ final class LogBufferTests: XCTestCase {
     
     func testLevelFilter() async {
         let buffer = LogBuffer(maxSize: 100)
-        
+
         buffer.append(createLogEntry(level: .debug, message: "Debug"))
         buffer.append(createLogEntry(level: .info, message: "Info"))
         buffer.append(createLogEntry(level: .error, message: "Error"))
-        
+
         // Wait for batch to flush
         try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-        
+
         var filter = LogFilter()
         filter.minLevel = .info
         buffer.setFilter(filter)
-        
+
+        // Wait for async filter to complete
+        try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+
         XCTAssertEqual(buffer.filteredEntries.count, 2)
     }
     
     func testTagFilter() async {
         let buffer = LogBuffer(maxSize: 100)
-        
+
         buffer.append(createLogEntry(tag: "Tag1", message: "1"))
         buffer.append(createLogEntry(tag: "Tag2", message: "2"))
         buffer.append(createLogEntry(tag: "Tag1", message: "3"))
-        
+
         // Wait for batch to flush
         try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-        
+
         var filter = LogFilter()
         filter.tags = ["Tag1"]
         buffer.setFilter(filter)
-        
+
+        // Wait for async filter to complete
+        try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+
         XCTAssertEqual(buffer.filteredEntries.count, 2)
     }
     
     func testExcludeTagFilter() async {
         let buffer = LogBuffer(maxSize: 100)
-        
+
         buffer.append(createLogEntry(tag: "Tag1", message: "1"))
         buffer.append(createLogEntry(tag: "Tag2", message: "2"))
         buffer.append(createLogEntry(tag: "Tag3", message: "3"))
-        
+
         // Wait for batch to flush
         try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-        
+
         var filter = LogFilter()
         filter.excludeTags = ["Tag2"]
         buffer.setFilter(filter)
-        
+
+        // Wait for async filter to complete
+        try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+
         XCTAssertEqual(buffer.filteredEntries.count, 2)
     }
     
