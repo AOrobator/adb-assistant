@@ -40,6 +40,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.aorobator.adb-assistant
         INFOPLIST_FILE: Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG SKIP_PREVIEWS
     
   ADBAssistantTests:
     type: bundle.unit-test
@@ -48,6 +51,7 @@ targets:
       - path: Tests/ADBAssistantTests
     dependencies:
       - target: ADBAssistant
+      - target: adb-assistant
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

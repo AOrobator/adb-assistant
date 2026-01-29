@@ -26,7 +26,7 @@ struct ToolbarView: View {
                     .focused($isSearchFocused)
                 
                 if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
+                    Button(action: { Self.clearSearch(&searchText) }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.secondary)
                     }
@@ -47,30 +47,42 @@ struct ToolbarView: View {
             Spacer()
             
             // Action buttons
-            Button(action: { adbManager.stopLogcat() }) {
+            Button(action: { Self.stopLogcat(adbManager) }) {
                 Image(systemName: "stop.fill")
             }
             .buttonStyle(.borderless)
             .disabled(!adbManager.isConnected)
             
-            Button(action: {
-                Task {
-                    try? await adbManager.startLogcat()
-                }
-            }) {
+            Button(action: { Self.startLogcat(adbManager) }) {
                 Image(systemName: "play.fill")
             }
             .buttonStyle(.borderless)
             .disabled(adbManager.isConnected || adbManager.selectedDevice == nil)
             
-            Button(action: {
-                Task {
-                    try? await adbManager.clearLogs()
-                }
-            }) {
+            Button(action: { Self.clearDeviceLogs(adbManager) }) {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)
+        }
+    }
+    
+    static func clearSearch(_ searchText: inout String) {
+        searchText = ""
+    }
+    
+    static func stopLogcat(_ adbManager: ADBManager) {
+        adbManager.stopLogcat()
+    }
+    
+    static func startLogcat(_ adbManager: ADBManager) {
+        Task {
+            try? await adbManager.startLogcat()
+        }
+    }
+    
+    static func clearDeviceLogs(_ adbManager: ADBManager) {
+        Task {
+            try? await adbManager.clearLogs()
         }
     }
 }
@@ -81,11 +93,9 @@ struct DevicePicker: View {
     var body: some View {
         Menu {
             ForEach(adbManager.devices) { device in
-                Button(action: {
-                    adbManager.selectedDevice = device
-                }) {
+                Button(action: selectDeviceAction(device: device, adbManager: adbManager)) {
                     HStack {
-                        Text(deviceDisplayName(device))
+                        Text(Self.deviceDisplayName(device))
                         if device.id == adbManager.selectedDevice?.id {
                             Image(systemName: "checkmark")
                         }
@@ -100,15 +110,11 @@ struct DevicePicker: View {
             
             Divider()
             
-            Button("Refresh") {
-                Task {
-                    await adbManager.refreshDevices()
-                }
-            }
+            Button("Refresh", action: { Self.refreshDevices(adbManager) })
         } label: {
             HStack {
                 Image(systemName: "iphone")
-                Text(adbManager.selectedDevice.map { deviceDisplayName($0) } ?? "Select Device")
+                Text(adbManager.selectedDevice.map { Self.deviceDisplayName($0) } ?? "Select Device")
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.caption)
@@ -121,11 +127,21 @@ struct DevicePicker: View {
         .menuStyle(.borderlessButton)
     }
     
-    private func deviceDisplayName(_ device: Device) -> String {
+    static func deviceDisplayName(_ device: Device) -> String {
         if let model = device.model {
             return "\(model) (\(device.serial.prefix(8)))"
         }
         return device.serial
+    }
+    
+    func selectDeviceAction(device: Device, adbManager: ADBManager) -> () -> Void {
+        { adbManager.selectedDevice = device }
+    }
+    
+    static func refreshDevices(_ adbManager: ADBManager) {
+        Task {
+            await adbManager.refreshDevices()
+        }
     }
 }
 
@@ -137,14 +153,19 @@ struct LevelFilterView: View {
             ForEach(LogLevel.allCases.filter { $0 != .silent }, id: \.self) { level in
                 LevelButton(
                     level: level,
-                    isSelected: selectedLevels.contains(level)
-                ) {
-                    if selectedLevels.contains(level) {
-                        selectedLevels.remove(level)
-                    } else {
-                        selectedLevels.insert(level)
-                    }
-                }
+                    isSelected: selectedLevels.contains(level),
+                    action: toggleLevelAction(level: level)
+                )
+            }
+        }
+    }
+    
+    func toggleLevelAction(level: LogLevel) -> () -> Void {
+        {
+            if selectedLevels.contains(level) {
+                selectedLevels.remove(level)
+            } else {
+                selectedLevels.insert(level)
             }
         }
     }

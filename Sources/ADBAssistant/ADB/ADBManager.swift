@@ -14,16 +14,21 @@ public class ADBManager: ObservableObject {
     private var outputPipe: Pipe?
     private var errorPipe: Pipe?
     private var cancellables = Set<AnyCancellable>()
-    private var logSubject = PassthroughSubject<LogEntry, Never>()
+    private var logSubject = PassthroughSubject<[LogEntry], Never>()
     private var disconnectTimer: Timer?
+    private var logProcessingTask: Task<Void, Never>?
+    private var logStreamContinuation: AsyncStream<Data>.Continuation?
+    private var errorProcessingTask: Task<Void, Never>?
     
-    public var logStream: AnyPublisher<LogEntry, Never> {
+    public var logStream: AnyPublisher<[LogEntry], Never> {
         logSubject.eraseToAnyPublisher()
     }
     
-    public init() {
+    public init(autoRefresh: Bool = true) {
         // Start auto-refresh timer for device detection
-        startDeviceRefreshTimer()
+        if autoRefresh {
+            startDeviceRefreshTimer()
+        }
     }
     
     private var refreshTimer: Timer?
@@ -35,14 +40,14 @@ public class ADBManager: ObservableObject {
         }
         
         // Set up periodic refresh on background thread for fast polling without blocking UI
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task.detached(priority: .background) { [weak self] in
                 await self?.refreshDevicesWithAutoSelect()
             }
         }
     }
     
-    private func refreshDevicesWithAutoSelect() async {
+    func refreshDevicesWithAutoSelect() async {
         do {
             let newDevices = try await listDevices()
             
@@ -122,63 +127,57 @@ public class ADBManager: ObservableObject {
         process.standardOutput = outputPipe
         process.standardError = errorPipe
         
-        // Handle output - process on background thread, batch send to main
-        outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            guard let self = self else { return }
+        // Handle output - feed async stream, parse on background task
+        var continuation: AsyncStream<Data>.Continuation?
+        let stream = AsyncStream<Data> { streamContinuation in
+            continuation = streamContinuation
+        }
+        logStreamContinuation = continuation
+        
+        outputPipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
-            guard let output = String(data: data, encoding: .utf8),
-                  !output.isEmpty else { return }
+            if data.isEmpty {
+                continuation?.finish()
+            } else {
+                continuation?.yield(data)
+            }
+        }
+        
+        logProcessingTask = Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            var parser = LogStreamParser()
             
-            // Parse on background thread
-            Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self = self else { return }
-                
-                var entries: [LogEntry] = []
-                let lines = output.components(separatedBy: .newlines)
-                
-                for line in lines {
-                    guard !line.isEmpty else { continue }
-                    guard let entry = LogParser.parseLine(line) else { continue }
-                    entries.append(entry)
-                    
-                    // Batch: send every 50 entries to avoid overwhelming main thread
-                    if entries.count >= 50 {
-                        let batch = entries
-                        entries.removeAll(keepingCapacity: true)
-                        await MainActor.run {
-                            for entry in batch {
-                                self.logSubject.send(entry)
-                            }
-                        }
-                    }
+            for await data in stream {
+                if Task.isCancelled {
+                    break
                 }
                 
-                // Send remaining entries
+                let entries = parser.parse(data)
                 if !entries.isEmpty {
-                    let batch = entries
                     await MainActor.run {
-                        for entry in batch {
-                            self.logSubject.send(entry)
-                        }
+                        self.logSubject.send(entries)
                     }
                 }
                 
-                // Reset disconnect timer on data received
                 await MainActor.run {
                     self.resetDisconnectTimer()
                 }
             }
         }
         
-        // Handle errors
-        errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let data = handle.availableData
-            guard let error = String(data: data, encoding: .utf8),
-                  !error.isEmpty else { return }
-            
-            Task { @MainActor in
-                self?.connectionError = error
-                self?.isConnected = false
+        // Handle errors on a background task to avoid run loop reliance.
+        errorProcessingTask = Task.detached(priority: .utility) { [weak self] in
+            let handle = errorPipe.fileHandleForReading
+            while !Task.isCancelled {
+                let data = handle.availableData
+                if data.isEmpty { break }
+                guard let error = String(data: data, encoding: .utf8),
+                      !error.isEmpty else { continue }
+                
+                await MainActor.run {
+                    self?.connectionError = error
+                    self?.isConnected = false
+                }
             }
         }
         
@@ -189,13 +188,16 @@ public class ADBManager: ObservableObject {
             }
         }
         
+        self.connectionError = nil
+        
         try process.run()
         
         self.process = process
         self.outputPipe = outputPipe
         self.errorPipe = errorPipe
-        self.isConnected = true
-        self.connectionError = nil
+        if self.connectionError == nil {
+            self.isConnected = true
+        }
         
         // Start disconnect detection timer
         startDisconnectTimer()
@@ -205,10 +207,17 @@ public class ADBManager: ObservableObject {
     public func stopLogcat() {
         process?.terminate()
         process = nil
+        outputPipe?.fileHandleForReading.readabilityHandler = nil
         outputPipe = nil
         errorPipe = nil
         isConnected = false
         cancelDisconnectTimer()
+        logStreamContinuation?.finish()
+        logStreamContinuation = nil
+        logProcessingTask?.cancel()
+        logProcessingTask = nil
+        errorProcessingTask?.cancel()
+        errorProcessingTask = nil
     }
     
     /// Clears the log buffer on the device
@@ -326,6 +335,36 @@ public class ADBManager: ObservableObject {
     private func cancelDisconnectTimer() {
         disconnectTimer?.invalidate()
         disconnectTimer = nil
+    }
+}
+
+struct LogStreamParser {
+    private var pendingLine: String = ""
+    
+    mutating func parse(_ data: Data) -> [LogEntry] {
+        guard let chunk = String(data: data, encoding: .utf8),
+              !chunk.isEmpty else {
+            return []
+        }
+        
+        var lines = (pendingLine + chunk).components(separatedBy: .newlines)
+        
+        if chunk.hasSuffix("\n") || chunk.hasSuffix("\r") {
+            pendingLine = ""
+        } else {
+            pendingLine = lines.popLast() ?? ""
+        }
+        
+        var entries: [LogEntry] = []
+        entries.reserveCapacity(lines.count)
+        
+        for line in lines where !line.isEmpty {
+            if let entry = LogParser.parseLine(line) {
+                entries.append(entry)
+            }
+        }
+        
+        return entries
     }
 }
 

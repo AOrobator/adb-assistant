@@ -11,19 +11,25 @@
 		0EC772D3D13265EF7254B80E /* LogBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36617DA5445616B616D75CE /* LogBufferTests.swift */; };
 		111AB501023DE654F178605E /* LogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5219144EBC2634B2482FBFAD /* LogListView.swift */; };
 		27220236A4CCFCFCD767C992 /* LogParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482C115E7318D725D8FF1772 /* LogParserTests.swift */; };
+		2996E6BFF684B5901B0C78E8 /* JSONDetectorAdditionalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ACC3B6ABB911604A884C3A9 /* JSONDetectorAdditionalTests.swift */; };
 		350CA497FF6B3FE3C1A840F0 /* ADBAssistant.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A1D8FB4E5A400ECDB60BB155 /* ADBAssistant.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3A688296C6F4FEB7E01BC886 /* AppViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9EFFAFCFD5E9FA4F6A74604 /* AppViewTests.swift */; };
 		3E45CE10F819D7D92170BF56 /* ADBAssistantApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440FD2088C3DE8A82A9F6021 /* ADBAssistantApp.swift */; };
 		4E6374C2886DDF786EFEA554 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23067F846184C461D95ECD37 /* StatusBarView.swift */; };
+		4EE47581707BA943E3302DC2 /* LogBufferAdditionalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C4C5333D38C1FDA6513DB3 /* LogBufferAdditionalTests.swift */; };
 		5FDC74DF70BF4230798A54E2 /* ADBAssistant.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A1D8FB4E5A400ECDB60BB155 /* ADBAssistant.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		653D7EB62A574088A21041B7 /* ToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A32B85B2942934D75D15A49 /* ToolbarView.swift */; };
 		73A2F9715FEE5BAE037D62E1 /* JSONDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A65DDFD867252D5D073C10B /* JSONDetector.swift */; };
 		839C9111C8D614CDC10FA7B2 /* JSONDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 835004336DE86357A67E65EC /* JSONDetectorTests.swift */; };
+		8F225A20FAEDFC056C6E4CF1 /* LogStreamParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A9F26B38C18C3B87A17227 /* LogStreamParserTests.swift */; };
 		A2ADAC5BF26DAC503247B71F /* ADBManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086BA72F3EBCCA062AA5ADC /* ADBManager.swift */; };
+		BAACAC81CE8A557BE0F24187 /* LogListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F0AE9CA36884FB1ACF1D00 /* LogListViewModel.swift */; };
 		D025B9C57A67647E5505F3A7 /* ADBAssistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1D8FB4E5A400ECDB60BB155 /* ADBAssistant.framework */; };
 		E1F7257FD49FE54DAEA58419 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945F41A9910626F4EF1012AA /* ContentView.swift */; };
 		E744082E0041992C89B45183 /* ADBAssistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1D8FB4E5A400ECDB60BB155 /* ADBAssistant.framework */; };
 		E8DEEABD3DDE30F0B59E0CEE /* LogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A429914E31CE22AD08F84A6 /* LogParser.swift */; };
 		F3B25A5691E3314919F1AA67 /* LogBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048A8CCD75451EBD806E3C5B /* LogBuffer.swift */; };
+		FE5A99E91CC458BC8FA343D5 /* ADBManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717246CF4ED199FE393292FD /* ADBManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,6 +39,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 49D8830A03D3D99A1B393193;
 			remoteInfo = ADBAssistant;
+		};
+		14A8B04DA4DD9589F4EA1DD4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A4B60754727F071E6A03BE37 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E527B0B15580729BF9DC30C4;
+			remoteInfo = "adb-assistant";
 		};
 		C4A67160DA0CA58383BBB115 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -76,15 +89,21 @@
 		440FD2088C3DE8A82A9F6021 /* ADBAssistantApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADBAssistantApp.swift; sourceTree = "<group>"; };
 		482C115E7318D725D8FF1772 /* LogParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogParserTests.swift; sourceTree = "<group>"; };
 		5219144EBC2634B2482FBFAD /* LogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogListView.swift; sourceTree = "<group>"; };
+		62C4C5333D38C1FDA6513DB3 /* LogBufferAdditionalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogBufferAdditionalTests.swift; sourceTree = "<group>"; };
+		717246CF4ED199FE393292FD /* ADBManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADBManagerTests.swift; sourceTree = "<group>"; };
 		7A65DDFD867252D5D073C10B /* JSONDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDetector.swift; sourceTree = "<group>"; };
 		835004336DE86357A67E65EC /* JSONDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDetectorTests.swift; sourceTree = "<group>"; };
+		88A9F26B38C18C3B87A17227 /* LogStreamParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStreamParserTests.swift; sourceTree = "<group>"; };
 		8A429914E31CE22AD08F84A6 /* LogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogParser.swift; sourceTree = "<group>"; };
 		945F41A9910626F4EF1012AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9ACC3B6ABB911604A884C3A9 /* JSONDetectorAdditionalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDetectorAdditionalTests.swift; sourceTree = "<group>"; };
 		A086BA72F3EBCCA062AA5ADC /* ADBManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADBManager.swift; sourceTree = "<group>"; };
 		A1D8FB4E5A400ECDB60BB155 /* ADBAssistant.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ADBAssistant.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A36617DA5445616B616D75CE /* LogBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogBufferTests.swift; sourceTree = "<group>"; };
+		A9EFFAFCFD5E9FA4F6A74604 /* AppViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewTests.swift; sourceTree = "<group>"; };
 		C93EFDFBC18DA62702CDAB23 /* ADBAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ADBAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D006CBC26ED3BB7967969ED7 /* adb-assistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "adb-assistant.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6F0AE9CA36884FB1ACF1D00 /* LogListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogListViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,9 +147,14 @@
 		24D69DC788B3AF895B28A867 /* ADBAssistantTests */ = {
 			isa = PBXGroup;
 			children = (
+				717246CF4ED199FE393292FD /* ADBManagerTests.swift */,
+				A9EFFAFCFD5E9FA4F6A74604 /* AppViewTests.swift */,
+				9ACC3B6ABB911604A884C3A9 /* JSONDetectorAdditionalTests.swift */,
 				835004336DE86357A67E65EC /* JSONDetectorTests.swift */,
+				62C4C5333D38C1FDA6513DB3 /* LogBufferAdditionalTests.swift */,
 				A36617DA5445616B616D75CE /* LogBufferTests.swift */,
 				482C115E7318D725D8FF1772 /* LogParserTests.swift */,
+				88A9F26B38C18C3B87A17227 /* LogStreamParserTests.swift */,
 			);
 			name = ADBAssistantTests;
 			path = Tests/ADBAssistantTests;
@@ -157,6 +181,7 @@
 			children = (
 				945F41A9910626F4EF1012AA /* ContentView.swift */,
 				5219144EBC2634B2482FBFAD /* LogListView.swift */,
+				D6F0AE9CA36884FB1ACF1D00 /* LogListViewModel.swift */,
 				23067F846184C461D95ECD37 /* StatusBarView.swift */,
 				3A32B85B2942934D75D15A49 /* ToolbarView.swift */,
 			);
@@ -227,6 +252,7 @@
 			);
 			dependencies = (
 				E125CD29770C14A516FC5D5B /* PBXTargetDependency */,
+				86B777BD70D1FEDFDBAC75F9 /* PBXTargetDependency */,
 			);
 			name = ADBAssistantTests;
 			packageProductDependencies = (
@@ -310,6 +336,7 @@
 				3E45CE10F819D7D92170BF56 /* ADBAssistantApp.swift in Sources */,
 				E1F7257FD49FE54DAEA58419 /* ContentView.swift in Sources */,
 				111AB501023DE654F178605E /* LogListView.swift in Sources */,
+				BAACAC81CE8A557BE0F24187 /* LogListViewModel.swift in Sources */,
 				4E6374C2886DDF786EFEA554 /* StatusBarView.swift in Sources */,
 				653D7EB62A574088A21041B7 /* ToolbarView.swift in Sources */,
 			);
@@ -319,9 +346,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FE5A99E91CC458BC8FA343D5 /* ADBManagerTests.swift in Sources */,
+				3A688296C6F4FEB7E01BC886 /* AppViewTests.swift in Sources */,
+				2996E6BFF684B5901B0C78E8 /* JSONDetectorAdditionalTests.swift in Sources */,
 				839C9111C8D614CDC10FA7B2 /* JSONDetectorTests.swift in Sources */,
+				4EE47581707BA943E3302DC2 /* LogBufferAdditionalTests.swift in Sources */,
 				0EC772D3D13265EF7254B80E /* LogBufferTests.swift in Sources */,
 				27220236A4CCFCFCD767C992 /* LogParserTests.swift in Sources */,
+				8F225A20FAEDFC056C6E4CF1 /* LogStreamParserTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,6 +372,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		86B777BD70D1FEDFDBAC75F9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E527B0B15580729BF9DC30C4 /* adb-assistant */;
+			targetProxy = 14A8B04DA4DD9589F4EA1DD4 /* PBXContainerItemProxy */;
+		};
 		A603B6ABB22841FF533B5234 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 49D8830A03D3D99A1B393193 /* ADBAssistant */;
@@ -468,6 +505,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.aorobator.adb-assistant";
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG SKIP_PREVIEWS";
 			};
 			name = Debug;
 		};

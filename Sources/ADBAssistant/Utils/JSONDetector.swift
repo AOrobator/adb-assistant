@@ -29,9 +29,7 @@ public struct JSONDetector {
     
     /// Pretty prints JSON if valid
     public static func prettyPrintJSON(_ jsonString: String) -> String? {
-        guard let data = jsonString.data(using: .utf8) else {
-            return nil
-        }
+        let data = Data(jsonString.utf8)
         
         do {
             let json = try JSONSerialization.jsonObject(with: data)
@@ -106,9 +104,7 @@ public struct JSONDetector {
     
     /// Validates if a string is valid JSON
     private static func isValidJSON(_ text: String) -> Bool {
-        guard let data = text.data(using: .utf8) else {
-            return false
-        }
+        let data = Data(text.utf8)
         
         do {
             _ = try JSONSerialization.jsonObject(with: data)

@@ -5,6 +5,12 @@ struct StatusBarView: View {
     @EnvironmentObject var adbManager: ADBManager
     @EnvironmentObject var logBuffer: LogBuffer
     
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
+    
     var body: some View {
         HStack {
             // Left: Stats
@@ -26,10 +32,14 @@ struct StatusBarView: View {
             // Center: Connection status
             HStack(spacing: 6) {
                 Circle()
-                    .fill(statusColor)
+                    .fill(Self.statusColor(isConnected: adbManager.isConnected, isPaused: logBuffer.isPaused))
                     .frame(width: 8, height: 8)
                 
-                Text(statusText)
+                Text(Self.statusText(
+                    isConnected: adbManager.isConnected,
+                    isPaused: logBuffer.isPaused,
+                    hasDevice: adbManager.selectedDevice != nil
+                ))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -37,35 +47,33 @@ struct StatusBarView: View {
             Spacer()
             
             // Right: Timestamp
-            Text(currentTime)
+            Text(Self.formattedTime(Date()))
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
     }
     
-    private var statusColor: Color {
-        if !adbManager.isConnected {
+    static func statusColor(isConnected: Bool, isPaused: Bool) -> Color {
+        if !isConnected {
             return .red
         }
-        if logBuffer.isPaused {
+        if isPaused {
             return .orange
         }
         return .green
     }
     
-    private var statusText: String {
-        if !adbManager.isConnected {
-            return adbManager.selectedDevice == nil ? "No device" : "Disconnected"
+    static func statusText(isConnected: Bool, isPaused: Bool, hasDevice: Bool) -> String {
+        if !isConnected {
+            return hasDevice ? "Disconnected" : "No device"
         }
-        if logBuffer.isPaused {
+        if isPaused {
             return "Paused"
         }
         return "Streaming"
     }
     
-    private var currentTime: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: Date())
+    static func formattedTime(_ date: Date) -> String {
+        timeFormatter.string(from: date)
     }
 }

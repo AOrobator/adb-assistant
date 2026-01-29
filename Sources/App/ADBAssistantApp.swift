@@ -18,32 +18,40 @@ struct ADBAssistantApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About ADB Assistant") {
-                    NSApplication.shared.orderFrontStandardAboutPanel(
-                        options: [
-                            .applicationName: "ADB Assistant",
-                            .applicationVersion: "1.0",
-                            .credits: NSAttributedString(string: "A native macOS logcat viewer")
-                        ]
-                    )
-                }
+                Button("About ADB Assistant", action: showAboutPanel)
             }
             
             CommandMenu("Logs") {
-                Button("Clear Logs") {
-                    logBuffer.clear()
-                }
+                Button("Clear Logs", action: clearLogs)
                 .keyboardShortcut("k", modifiers: .command)
                 
-                Button("Pause/Resume") {
-                    if logBuffer.isPaused {
-                        logBuffer.resume()
-                    } else {
-                        logBuffer.pause()
-                    }
-                }
+                Button("Pause/Resume", action: togglePauseResume)
                 .keyboardShortcut("p", modifiers: .command)
             }
+        }
+    }
+    
+    func showAboutPanel() {
+        NSApplication.shared.orderFrontStandardAboutPanel(options: aboutPanelOptions())
+    }
+    
+    func aboutPanelOptions() -> [NSApplication.AboutPanelOptionKey: Any] {
+        [
+            .applicationName: "ADB Assistant",
+            .applicationVersion: "1.0",
+            .credits: NSAttributedString(string: "A native macOS logcat viewer")
+        ]
+    }
+    
+    func clearLogs() {
+        logBuffer.clear()
+    }
+    
+    func togglePauseResume() {
+        if logBuffer.isPaused {
+            logBuffer.resume()
+        } else {
+            logBuffer.pause()
         }
     }
 }

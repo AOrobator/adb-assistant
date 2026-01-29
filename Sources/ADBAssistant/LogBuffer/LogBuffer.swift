@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Thread-safe circular buffer for log entries with batched UI updates
+/// Thread-safe buffer for log entries with batched UI updates
 @MainActor
 public class LogBuffer: ObservableObject {
     
@@ -9,18 +9,17 @@ public class LogBuffer: ObservableObject {
     @Published public private(set) var filteredEntries: [LogEntry] = []
     @Published public private(set) var isPaused: Bool = false
     @Published public private(set) var newLogCount: Int = 0
+    @Published public private(set) var droppedWhilePaused: Int = 0
     
     public let maxSize: Int
     
-    private var buffer: [LogEntry] = []
-    private var writeIndex: Int = 0
-    private var isFull: Bool = false
     private var filter: LogFilter = LogFilter()
     private var pendingEntries: [LogEntry] = []
+    private let maxPendingEntries = 10_000
     
     // Batching for performance
     private var batchBuffer: [LogEntry] = []
-    private var batchTimer: Timer?
+    private var batchTimer: DispatchSourceTimer?
     private let batchInterval: TimeInterval = 1.0 / 60.0  // 60fps max
     private let batchSize = 100  // Max entries per batch
     
@@ -32,71 +31,35 @@ public class LogBuffer: ObservableObject {
     
     /// Appends a log entry to the buffer (batched for performance)
     public func append(_ entry: LogEntry) {
-        if isPaused {
-            pendingEntries.append(entry)
-            newLogCount = pendingEntries.count
-            return
-        }
-        
-        // Add to batch buffer (no UI update yet)
-        batchBuffer.append(entry)
-        
-        // Schedule batch flush if not already scheduled
-        if batchTimer == nil {
-            batchTimer = Timer.scheduledTimer(withTimeInterval: batchInterval, repeats: false) { [weak self] _ in
-                Task { @MainActor in
-                    self?.flushBatch()
-                }
-            }
-        }
-        
-        // Flush immediately if batch is full
-        if batchBuffer.count >= batchSize {
-            flushBatch()
-        }
+        appendEntries([entry])
     }
     
     /// Appends multiple entries efficiently
     public func append(_ newEntries: [LogEntry]) {
-        for entry in newEntries {
-            append(entry)
-        }
+        appendEntries(newEntries)
     }
     
     /// Flushes pending batch to UI
     private func flushBatch() {
-        guard !batchBuffer.isEmpty else { return }
+        guard !batchBuffer.isEmpty else {
+            cancelBatchTimer()
+            return
+        }
         
         let batch = batchBuffer
         batchBuffer.removeAll(keepingCapacity: true)
-        batchTimer?.invalidate()
-        batchTimer = nil
-        
-        // Add to circular buffer
-        for entry in batch {
-            if buffer.count < maxSize {
-                buffer.append(entry)
-            } else {
-                buffer[writeIndex] = entry
-            }
-            writeIndex = (writeIndex + 1) % maxSize
-            if writeIndex == 0 {
-                isFull = true
-            }
-        }
-        
-        // Single UI update with all batched entries
-        updateEntries()
+        cancelBatchTimer()
+        applyBatch(batch)
     }
     
     /// Clears the buffer
     public func clear() {
         flushBatch()  // Flush any pending first
-        buffer.removeAll()
-        writeIndex = 0
-        isFull = false
         pendingEntries.removeAll()
         newLogCount = 0
+        droppedWhilePaused = 0
+        batchBuffer.removeAll()
+        cancelBatchTimer()
         entries.removeAll()
         filteredEntries.removeAll()
     }
@@ -116,10 +79,9 @@ public class LogBuffer: ObservableObject {
         let pending = pendingEntries
         pendingEntries.removeAll()
         newLogCount = 0
+        droppedWhilePaused = 0
         
-        for entry in pending {
-            append(entry)
-        }
+        appendEntries(pending)
     }
     
     // MARK: - Filtering
@@ -127,20 +89,6 @@ public class LogBuffer: ObservableObject {
     /// Updates the filter and refreshes displayed entries
     public func setFilter(_ newFilter: LogFilter) {
         filter = newFilter
-        updateFilteredEntries()
-    }
-    
-    /// Gets entries matching the current filter
-    private func updateEntries() {
-        // Get entries in chronological order
-        let orderedEntries: [LogEntry]
-        if isFull {
-            orderedEntries = Array(buffer[writeIndex...] + buffer[..<writeIndex])
-        } else {
-            orderedEntries = buffer
-        }
-        
-        entries = orderedEntries
         updateFilteredEntries()
     }
     
@@ -172,7 +120,93 @@ public class LogBuffer: ObservableObject {
     
     /// Total buffered entries
     public var totalCount: Int {
-        isFull ? maxSize : buffer.count
+        entries.count
+    }
+
+    // MARK: - Private Helpers
+    
+    private func appendEntries(_ newEntries: [LogEntry]) {
+        guard !newEntries.isEmpty else { return }
+        
+        if isPaused {
+            enqueuePending(newEntries)
+            return
+        }
+        
+        batchBuffer.append(contentsOf: newEntries)
+        scheduleBatchFlush()
+        
+        if batchBuffer.count >= batchSize {
+            flushBatch()
+        }
+    }
+    
+    private func enqueuePending(_ newEntries: [LogEntry]) {
+        guard !newEntries.isEmpty else { return }
+        
+        let availableCapacity = max(0, maxPendingEntries - pendingEntries.count)
+        if availableCapacity > 0 {
+            let slice = newEntries.prefix(availableCapacity)
+            pendingEntries.append(contentsOf: slice)
+        }
+        
+        let dropped = newEntries.count - availableCapacity
+        if dropped > 0 {
+            droppedWhilePaused += dropped
+        }
+        
+        newLogCount = pendingEntries.count
+    }
+    
+    private func scheduleBatchFlush() {
+        guard batchTimer == nil else { return }
+        
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + batchInterval)
+        timer.setEventHandler { [weak self] in
+            Task { @MainActor in
+                self?.flushBatch()
+            }
+        }
+        timer.resume()
+        batchTimer = timer
+    }
+    
+    private func cancelBatchTimer() {
+        batchTimer?.cancel()
+        batchTimer = nil
+    }
+    
+    private func applyBatch(_ batch: [LogEntry]) {
+        guard !batch.isEmpty else { return }
+        
+        entries.append(contentsOf: batch)
+        
+        var removedIDs = Set<UUID>()
+        if entries.count > maxSize {
+            let excess = entries.count - maxSize
+            let removed = entries.prefix(excess)
+            removedIDs = Set(removed.map { $0.id })
+            entries.removeFirst(excess)
+        }
+        
+        if !removedIDs.isEmpty {
+            filteredEntries.removeAll { removedIDs.contains($0.id) }
+        }
+        
+        let remainingBatch: [LogEntry]
+        if removedIDs.isEmpty {
+            remainingBatch = batch
+        } else {
+            remainingBatch = batch.filter { !removedIDs.contains($0.id) }
+        }
+        
+        if !remainingBatch.isEmpty {
+            let matching = remainingBatch.filter { filter.matches($0) }
+            if !matching.isEmpty {
+                filteredEntries.append(contentsOf: matching)
+            }
+        }
     }
 }
 

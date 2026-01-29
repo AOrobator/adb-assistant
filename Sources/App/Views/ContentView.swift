@@ -34,24 +34,34 @@ struct ContentView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 6)
         }
-        .onAppear {
-            setupLogStream()
-            Task {
-                await adbManager.refreshDevices()
-            }
+        .onAppear(perform: handleInitialAppear)
+        .onReceive(adbManager.logStream, perform: handleLogStream)
+        .onChange(of: searchText, perform: handleSearchTextChange)
+        .onChange(of: selectedLevels, perform: handleSelectedLevelsChange)
+        .onAppear(perform: handleKeyboardShortcutsAppear)
+    }
+    
+    func handleInitialAppear() {
+        setupLogStream()
+        Task {
+            await adbManager.refreshDevices()
         }
-        .onReceive(adbManager.logStream) { entry in
-            logBuffer.append(entry)
-        }
-        .onChange(of: searchText) { _ in
-            updateFilter()
-        }
-        .onChange(of: selectedLevels) { _ in
-            updateFilter()
-        }
-        .onAppear {
-            setupKeyboardShortcuts()
-        }
+    }
+    
+    func handleLogStream(_ entries: [LogEntry]) {
+        logBuffer.append(entries)
+    }
+    
+    func handleSearchTextChange(_: String) {
+        updateFilter()
+    }
+    
+    func handleSelectedLevelsChange(_: Set<LogLevel>) {
+        updateFilter()
+    }
+    
+    func handleKeyboardShortcutsAppear() {
+        setupKeyboardShortcuts()
     }
     
     private func setupLogStream() {
@@ -63,25 +73,26 @@ struct ContentView: View {
         // Keyboard shortcuts are handled by the menu commands in ADBAssistantApp
     }
     
-    private func updateFilter() {
+    static func buildFilter(searchText: String, selectedLevels: Set<LogLevel>) -> LogFilter {
         let minLevel = selectedLevels.min() ?? .verbose
         let maxLevel = selectedLevels.max() ?? .fatal
         
-        var filter = LogFilter(
-            minLevel: minLevel,
-            maxLevel: maxLevel
-        )
-        
+        var filter = LogFilter(minLevel: minLevel, maxLevel: maxLevel)
         if !searchText.isEmpty {
             filter.searchQuery = searchText
         }
-        
-        logBuffer.setFilter(filter)
+        return filter
+    }
+    
+    func updateFilter() {
+        logBuffer.setFilter(Self.buildFilter(searchText: searchText, selectedLevels: selectedLevels))
     }
 }
 
+#if DEBUG && !SKIP_PREVIEWS
 #Preview {
     ContentView()
         .environmentObject(ADBManager())
         .environmentObject(LogBuffer())
 }
+#endif

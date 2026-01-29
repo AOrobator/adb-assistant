@@ -104,4 +104,20 @@ final class LogParserTests: XCTestCase {
         
         XCTAssertTrue(entry?.containsJSON ?? false)
     }
+
+    func testParseLineWithInvalidDateFallsBackToRaw() {
+        let line = "99-99 99:99:99.999  1234  5678 D Tag: Bad date"
+        
+        let entry = LogParser.parseLine(line)
+        
+        XCTAssertEqual(entry?.tag, "Unknown")
+        XCTAssertEqual(entry?.message, line)
+    }
+
+    func testParseLogcatBeginningLine() {
+        let line = "--------- beginning of main"
+        let entry = LogParser.parseLine(line)
+        XCTAssertEqual(entry?.tag, "Logcat")
+        XCTAssertEqual(entry?.message, line)
+    }
 }

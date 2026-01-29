@@ -2,12 +2,31 @@ import SwiftUI
 import ADBAssistant
 
 struct LogListView: View {
-    @EnvironmentObject var logBuffer: LogBuffer
+    @EnvironmentObject private var logBuffer: LogBuffer
+    @StateObject private var viewModel = LogListViewModel()
+    
+    var body: some View {
+        LogListContent(
+            viewModel: viewModel,
+            onResume: {
+                logBuffer.resume()
+            }
+        )
+        .onAppear {
+            viewModel.bind(to: logBuffer)
+        }
+    }
+}
+
+struct LogListContent: View {
+    @ObservedObject var viewModel: LogListViewModel
+    let onResume: () -> Void
     @State private var selectedEntry: LogEntry?
     @State private var expandedJSONEntries: Set<UUID> = []
     @State private var isAutoScrollEnabled = true
     @State private var hasUserScrolled = false
-    
+    @State private var autoScrollTask: Task<Void, Never>?
+
     var body: some View {
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
@@ -17,25 +36,15 @@ struct LogListView: View {
                         .toggleStyle(.switch)
                         .controlSize(.small)
                         .onChange(of: isAutoScrollEnabled) { newValue in
-                            if newValue {
-                                // Re-enable auto-scroll and scroll to bottom
-                                hasUserScrolled = false
-                                if let lastEntry = logBuffer.filteredEntries.last {
-                                    withAnimation {
-                                        proxy.scrollTo(lastEntry.id, anchor: .bottom)
-                                    }
-                                }
-                            }
+                            handleAutoScrollToggle(newValue, scrollTo: { id in
+                                proxy.scrollTo(id, anchor: .bottom)
+                            })
                         }
-                    
+
                     Spacer()
-                    
-                    if logBuffer.isPaused {
-                        Button("Resume") {
-                            logBuffer.resume()
-                            isAutoScrollEnabled = true
-                            hasUserScrolled = false
-                        }
+
+                    if viewModel.isPaused {
+                        Button("Resume", action: handleResume)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                     }
@@ -43,77 +52,105 @@ struct LogListView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color.secondary.opacity(0.05))
-                
+
                 // Log list
                 List(selection: $selectedEntry) {
-                    ForEach(logBuffer.filteredEntries) { entry in
+                    ForEach(viewModel.entries) { entry in
                         LogRowView(
                             entry: entry,
                             isExpanded: expandedJSONEntries.contains(entry.id),
-                            onToggleJSON: {
-                                toggleJSON(for: entry)
-                            }
+                            onToggleJSON: toggleJSON
                         )
                         .id(entry.id)
                         .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                         .listRowSeparator(.hidden)
-                        .background(entryBackground(for: entry))
+                        .background(Self.entryBackground(for: entry, selectedEntryID: selectedEntry?.id))
                     }
                 }
                 .listStyle(.plain)
-                .onChange(of: logBuffer.filteredEntries.count) { _ in
-                    // Auto-scroll to bottom when new entries arrive (if enabled)
-                    // Use async to not block the UI update
-                    if isAutoScrollEnabled && !hasUserScrolled && !logBuffer.isPaused {
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 10_000_000)  // 10ms delay for UI to settle
-                            if let lastEntry = logBuffer.filteredEntries.last {
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    proxy.scrollTo(lastEntry.id, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
+                .onChange(of: viewModel.entries.last?.id) { _ in
+                    handleEntriesChanged(scrollTo: { id in
+                        proxy.scrollTo(id, anchor: .bottom)
+                    })
                 }
                 .onAppear {
-                    // Scroll to bottom on initial load
-                    if let lastEntry = logBuffer.filteredEntries.last {
-                        proxy.scrollTo(lastEntry.id, anchor: .bottom)
-                    }
+                    handleInitialScroll(scrollTo: { id in
+                        proxy.scrollTo(id, anchor: .bottom)
+                    })
                 }
                 .simultaneousGesture(
                     DragGesture().onChanged { _ in
-                        // Detect user scrolling to disable auto-scroll
-                        if isAutoScrollEnabled {
-                            hasUserScrolled = true
-                            isAutoScrollEnabled = false
-                        }
+                        handleDragChanged()
                     }
                 )
             }
             .overlay(alignment: .bottom) {
-                if logBuffer.isPaused && logBuffer.newLogCount > 0 {
-                    ResumeButton(count: logBuffer.newLogCount) {
-                        logBuffer.resume()
-                        isAutoScrollEnabled = true
-                        hasUserScrolled = false
-                    }
+                if viewModel.isPaused && viewModel.newLogCount > 0 {
+                    ResumeButton(count: viewModel.newLogCount, action: handleResume)
                     .padding(.bottom, 16)
                 }
             }
         }
     }
-    
-    private func toggleJSON(for entry: LogEntry) {
-        if expandedJSONEntries.contains(entry.id) {
-            expandedJSONEntries.remove(entry.id)
+
+    func toggleJSON(for entryID: UUID) {
+        if expandedJSONEntries.contains(entryID) {
+            expandedJSONEntries.remove(entryID)
         } else {
-            expandedJSONEntries.insert(entry.id)
+            expandedJSONEntries.insert(entryID)
         }
     }
     
-    private func entryBackground(for entry: LogEntry) -> some View {
-        if entry.id == selectedEntry?.id {
+    func handleAutoScrollToggle(_ newValue: Bool, scrollTo: @escaping (UUID) -> Void) {
+        guard newValue else { return }
+        hasUserScrolled = false
+        if let lastEntry = viewModel.entries.last {
+            withAnimation {
+                scrollTo(lastEntry.id)
+            }
+        }
+    }
+    
+    func handleEntriesChanged(scrollTo: @escaping (UUID) -> Void) {
+        // Auto-scroll to bottom when new entries arrive (if enabled)
+        // Use async to not block the UI update
+        if isAutoScrollEnabled && !hasUserScrolled && !viewModel.isPaused {
+            autoScrollTask?.cancel()
+            autoScrollTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 10_000_000)  // 10ms delay for UI to settle
+                guard !Task.isCancelled else { return }
+                if let lastEntry = viewModel.entries.last {
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        scrollTo(lastEntry.id)
+                    }
+                }
+            }
+        }
+    }
+    
+    func handleInitialScroll(scrollTo: @escaping (UUID) -> Void) {
+        // Scroll to bottom on initial load
+        if let lastEntry = viewModel.entries.last {
+            scrollTo(lastEntry.id)
+        }
+    }
+    
+    func handleResume() {
+        onResume()
+        isAutoScrollEnabled = true
+        hasUserScrolled = false
+    }
+    
+    func handleDragChanged() {
+        // Detect user scrolling to disable auto-scroll
+        if isAutoScrollEnabled {
+            hasUserScrolled = true
+            isAutoScrollEnabled = false
+        }
+    }
+    
+    static func entryBackground(for entry: LogEntry, selectedEntryID: UUID?) -> Color {
+        if entry.id == selectedEntryID {
             return Color.accentColor.opacity(0.2)
         }
         switch entry.level {
@@ -127,10 +164,26 @@ struct LogListView: View {
     }
 }
 
-struct LogRowView: View {
+struct LogRowView: View, Equatable {
     let entry: LogEntry
     let isExpanded: Bool
-    let onToggleJSON: () -> Void
+    let onToggleJSON: (UUID) -> Void
+    
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        return formatter
+    }()
+    
+    private static var tagColorCache: [String: Color] = [:]
+    
+    static func == (lhs: LogRowView, rhs: LogRowView) -> Bool {
+        lhs.entry.id == rhs.entry.id && lhs.isExpanded == rhs.isExpanded
+    }
+    
+    var toggleJSONAction: () -> Void {
+        { onToggleJSON(entry.id) }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -154,7 +207,7 @@ struct LogRowView: View {
                 // Message
                 HStack(spacing: 4) {
                     if entry.containsJSON {
-                        Button(action: onToggleJSON) {
+                        Button(action: toggleJSONAction) {
                             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                                 .font(.system(size: 10))
                         }
@@ -179,21 +232,23 @@ struct LogRowView: View {
     }
     
     private func formattedTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
-        return formatter.string(from: date)
+        Self.timeFormatter.string(from: date)
     }
     
     private func tagColor(for tag: String) -> Color {
-        // Generate consistent color based on tag hash
-        // Use simple hash algorithm that won't overflow
+        if let cached = Self.tagColorCache[tag] {
+            return cached
+        }
+        
         var hash = 0
         for char in tag.utf8 {
             hash = (hash &* 31) &+ Int(char)
         }
         
         let hue = Double(abs(hash) % 360) / 360.0
-        return Color(hue: hue, saturation: 0.7, brightness: 0.8)
+        let color = Color(hue: hue, saturation: 0.7, brightness: 0.8)
+        Self.tagColorCache[tag] = color
+        return color
     }
 }
 
