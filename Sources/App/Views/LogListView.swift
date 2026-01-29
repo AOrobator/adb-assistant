@@ -195,7 +195,7 @@ struct LogRowView: View, Equatable {
                 Text(formattedTime(entry.timestamp))
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
-                    .frame(width: 80, alignment: .leading)
+                    .frame(width: 88, alignment: .leading)
                 
                 // Tag
                 Text(entry.tag)
