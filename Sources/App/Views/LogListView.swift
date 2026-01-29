@@ -209,7 +209,7 @@ struct LogRowView: View, Equatable {
                 Text(entry.tag)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(tagColor(for: entry.tag))
-                    .frame(width: 100, alignment: .leading)
+                    .frame(width: 220, alignment: .leading)
                     .lineLimit(1)
                 
                 // Message
