@@ -52,17 +52,6 @@ open adb-assistant.xcodeproj
 - [PERSONAS.md](PERSONAS.md) — Multi-agent review system
 - [.agents/skills/](.agents/skills/) — Skill files for domain knowledge
 
-## Known Issues
-
-See [reviews/](reviews/) for detailed analysis. Top priorities:
-
-| Issue | Impact | Fix |
-|-------|--------|-----|
-| DateFormatter created every render | Frame drops | Static cached formatter |
-| Batching sends entries one-at-a-time | 50x UI updates | Send as batch array |
-| Timer scheduled from background thread | May not fire | Use DispatchSourceTimer |
-| No thread safety on batchBuffer | Potential crash | Make LogBuffer an actor |
-
 ## License
 
 MIT
