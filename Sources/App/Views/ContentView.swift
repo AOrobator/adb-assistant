@@ -74,10 +74,7 @@ struct ContentView: View {
     }
     
     static func buildFilter(searchText: String, selectedLevels: Set<LogLevel>) -> LogFilter {
-        let minLevel = selectedLevels.min() ?? .verbose
-        let maxLevel = selectedLevels.max() ?? .fatal
-        
-        var filter = LogFilter(minLevel: minLevel, maxLevel: maxLevel)
+        var filter = LogFilter(levels: selectedLevels)
         if !searchText.isEmpty {
             filter.searchQuery = searchText
         }

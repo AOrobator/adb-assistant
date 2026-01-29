@@ -76,7 +76,7 @@ final class LogBufferAdditionalTests: XCTestCase {
 
         // Apply filter - isFiltering should become true
         var filter = LogFilter()
-        filter.minLevel = .warning
+        filter.levels = [.warning, .error, .fatal, .silent]
         buffer.setFilter(filter)
 
         XCTAssertTrue(buffer.isFiltering, "Should be filtering immediately after setFilter")
@@ -98,15 +98,15 @@ final class LogBufferAdditionalTests: XCTestCase {
 
         // Rapidly change filters
         var filter1 = LogFilter()
-        filter1.minLevel = .debug
+        filter1.levels = [.debug, .info, .warning, .error, .fatal, .silent]
         buffer.setFilter(filter1)
 
         var filter2 = LogFilter()
-        filter2.minLevel = .info
+        filter2.levels = [.info, .warning, .error, .fatal, .silent]
         buffer.setFilter(filter2)
 
         var filter3 = LogFilter()
-        filter3.minLevel = .error
+        filter3.levels = [.error, .fatal, .silent]
         buffer.setFilter(filter3)
 
         // Wait for final filter to complete
@@ -128,7 +128,7 @@ final class LogBufferAdditionalTests: XCTestCase {
 
         // Start filtering
         var filter = LogFilter()
-        filter.minLevel = .error
+        filter.levels = [.error, .fatal, .silent]
         buffer.setFilter(filter)
 
         // Clear immediately
@@ -150,7 +150,7 @@ final class LogBufferAdditionalTests: XCTestCase {
 
         // Filter for errors only
         var filter = LogFilter()
-        filter.minLevel = .error
+        filter.levels = [.error, .fatal, .silent]
         buffer.setFilter(filter)
 
         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -171,7 +171,7 @@ final class LogBufferAdditionalTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000)
 
         var filter = LogFilter()
-        filter.minLevel = .error
+        filter.levels = [.error, .fatal, .silent]
         buffer.setFilter(filter)
 
         try? await Task.sleep(nanoseconds: 100_000_000)

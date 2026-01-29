@@ -28,14 +28,12 @@ final class AppViewTests: XCTestCase {
 
     func testContentViewBuildFilter() {
         let filter = ContentView.buildFilter(searchText: "hello", selectedLevels: [.info, .error])
-        XCTAssertEqual(filter.minLevel, .info)
-        XCTAssertEqual(filter.maxLevel, .error)
+        XCTAssertEqual(filter.levels, [.info, .error])
         XCTAssertEqual(filter.searchQuery, "hello")
 
         let emptyFilter = ContentView.buildFilter(searchText: "", selectedLevels: [])
         XCTAssertNil(emptyFilter.searchQuery)
-        XCTAssertEqual(emptyFilter.minLevel, .verbose)
-        XCTAssertEqual(emptyFilter.maxLevel, .fatal)
+        XCTAssertTrue(emptyFilter.levels.isEmpty)
     }
 
     func testToolbarHelpers() {

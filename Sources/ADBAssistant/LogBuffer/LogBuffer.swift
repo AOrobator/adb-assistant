@@ -244,36 +244,33 @@ public class LogBuffer: ObservableObject {
 
 /// Filter configuration for log entries
 public struct LogFilter: Equatable {
-    public var minLevel: LogLevel
-    public var maxLevel: LogLevel
+    public var levels: Set<LogLevel>
     public var tags: Set<String>
     public var excludeTags: Set<String>
     public var searchQuery: String?
     public var caseSensitive: Bool
     public var useRegex: Bool
-    
+
     public init(
-        minLevel: LogLevel = .verbose,
-        maxLevel: LogLevel = .fatal,
+        levels: Set<LogLevel> = Set(LogLevel.allCases),
         tags: Set<String> = [],
         excludeTags: Set<String> = [],
         searchQuery: String? = nil,
         caseSensitive: Bool = false,
         useRegex: Bool = false
     ) {
-        self.minLevel = minLevel
-        self.maxLevel = maxLevel
+        self.levels = levels
         self.tags = tags
         self.excludeTags = excludeTags
         self.searchQuery = searchQuery
         self.caseSensitive = caseSensitive
         self.useRegex = useRegex
     }
-    
+
     /// Checks if an entry matches the filter
     public func matches(_ entry: LogEntry) -> Bool {
-        // Level filter
-        guard entry.level >= minLevel && entry.level <= maxLevel else {
+        // Level filter - entry's level must be in the selected levels set
+        guard levels.contains(entry.level) else {
             return false
         }
         

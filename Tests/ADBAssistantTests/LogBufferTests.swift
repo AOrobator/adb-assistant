@@ -85,7 +85,7 @@ final class LogBufferTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
 
         var filter = LogFilter()
-        filter.minLevel = .info
+        filter.levels = [.info, .warning, .error, .fatal, .silent]
         buffer.setFilter(filter)
 
         // Wait for async filter to complete
