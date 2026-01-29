@@ -154,11 +154,19 @@ struct LogListContent: View {
             return Color.accentColor.opacity(0.2)
         }
         switch entry.level {
-        case .error, .fatal:
-            return Color.red.opacity(0.05)
+        case .verbose:
+            return Color.gray.opacity(0.05)
+        case .debug:
+            return Color.blue.opacity(0.05)
+        case .info:
+            return Color.green.opacity(0.05)
         case .warning:
             return Color.orange.opacity(0.05)
-        default:
+        case .error:
+            return Color.red.opacity(0.05)
+        case .fatal:
+            return Color.purple.opacity(0.08)
+        case .silent:
             return Color.clear
         }
     }
