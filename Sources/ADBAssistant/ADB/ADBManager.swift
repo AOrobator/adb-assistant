@@ -160,6 +160,7 @@ public class ADBManager: ObservableObject {
                 }
                 
                 await MainActor.run {
+                    self.isConnected = true
                     self.resetDisconnectTimer()
                 }
             }
