@@ -269,8 +269,8 @@ public struct LogFilter: Equatable {
 
     /// Checks if an entry matches the filter
     public func matches(_ entry: LogEntry) -> Bool {
-        // Level filter - entry's level must be in the selected levels set
-        guard levels.contains(entry.level) else {
+        // Level filter - empty set means show all levels
+        if !levels.isEmpty && !levels.contains(entry.level) {
             return false
         }
         
