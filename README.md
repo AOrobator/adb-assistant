@@ -6,7 +6,7 @@ A native macOS logcat viewer that doesn't suck.
 
 ## Status
 
-🚧 **In Development** — MVP functional, fixing performance issues
+🚧 **In Development** — Core filtering features working (package, level, search)
 
 ## Vision
 
@@ -14,11 +14,12 @@ Replace Android Studio's logcat for 90% of debugging workflows. Pidcat with a GU
 
 ## Key Features
 
-- **Package-first filtering** — No more PID tracking hell
-- **JSON handling** — Auto-detect, inline expand, syntax highlight
-- **Keyboard-driven** — ⌘K clear, ⌘G next match
-- **Pause-on-scroll** — Floating resume button with new log count
+- **Package filtering** — Filter logs by app using stable UIDs (not PIDs that change on restart)
+- **Log level filtering** — Toggle V/D/I/W/E/F levels with visual indicators
+- **Real-time search** — Filter logs by text in message or tag
 - **Auto-device detection** — Connects automatically when device plugged in
+- **JSON handling** — Auto-detect, inline expand, syntax highlight (planned)
+- **Keyboard-driven** — ⌘K clear, ⌘G next match (planned)
 
 ## Tech Stack
 
