@@ -91,11 +91,12 @@ struct ToolbarView: View {
 
 struct DevicePicker: View {
     @EnvironmentObject var adbManager: ADBManager
-    
+    @EnvironmentObject var logBuffer: LogBuffer
+
     var body: some View {
         Menu {
             ForEach(adbManager.devices) { device in
-                Button(action: selectDeviceAction(device: device, adbManager: adbManager)) {
+                Button(action: selectDeviceAction(device: device, adbManager: adbManager, logBuffer: logBuffer)) {
                     HStack {
                         Text(Self.deviceDisplayName(device))
                         if device.id == adbManager.selectedDevice?.id {
@@ -136,8 +137,16 @@ struct DevicePicker: View {
         return device.serial
     }
     
-    func selectDeviceAction(device: Device, adbManager: ADBManager) -> () -> Void {
-        { adbManager.selectedDevice = device }
+    func selectDeviceAction(device: Device, adbManager: ADBManager, logBuffer: LogBuffer) -> () -> Void {
+        {
+            guard device.id != adbManager.selectedDevice?.id else { return }
+            adbManager.stopLogcat()
+            logBuffer.clear()
+            adbManager.selectedDevice = device
+            Task {
+                try? await adbManager.startLogcat()
+            }
+        }
     }
     
     static func refreshDevices(_ adbManager: ADBManager) {

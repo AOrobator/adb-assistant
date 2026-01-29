@@ -55,8 +55,9 @@ final class AppViewTests: XCTestCase {
         XCTAssertEqual(DevicePicker.deviceDisplayName(deviceNoModel), "serialABC")
 
         let adbManager = ADBManager(autoRefresh: false)
+        let logBuffer = LogBuffer(maxSize: 10)
         let picker = DevicePicker()
-        let selectAction = picker.selectDeviceAction(device: deviceNoModel, adbManager: adbManager)
+        let selectAction = picker.selectDeviceAction(device: deviceNoModel, adbManager: adbManager, logBuffer: logBuffer)
         selectAction()
         XCTAssertEqual(adbManager.selectedDevice?.serial, "serialABC")
     }
