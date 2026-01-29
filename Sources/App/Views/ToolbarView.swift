@@ -3,6 +3,7 @@ import ADBAssistant
 
 struct ToolbarView: View {
     @EnvironmentObject var adbManager: ADBManager
+    @EnvironmentObject var logBuffer: LogBuffer
     @Binding var searchText: String
     @Binding var selectedLevels: Set<LogLevel>
     @Binding var isSearching: Bool
@@ -59,7 +60,7 @@ struct ToolbarView: View {
             .buttonStyle(.borderless)
             .disabled(adbManager.isConnected || adbManager.selectedDevice == nil)
             
-            Button(action: { Self.clearDeviceLogs(adbManager) }) {
+            Button(action: { Self.clearDeviceLogs(adbManager, logBuffer) }) {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)
@@ -80,7 +81,8 @@ struct ToolbarView: View {
         }
     }
     
-    static func clearDeviceLogs(_ adbManager: ADBManager) {
+    static func clearDeviceLogs(_ adbManager: ADBManager, _ logBuffer: LogBuffer) {
+        logBuffer.clear()
         Task {
             try? await adbManager.clearLogs()
         }

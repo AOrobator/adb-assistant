@@ -44,9 +44,10 @@ final class AppViewTests: XCTestCase {
         XCTAssertEqual(searchText, "")
 
         let adbManager = ADBManager(autoRefresh: false)
+        let logBuffer = LogBuffer(maxSize: 10)
         ToolbarView.stopLogcat(adbManager)
         ToolbarView.startLogcat(adbManager)
-        ToolbarView.clearDeviceLogs(adbManager)
+        ToolbarView.clearDeviceLogs(adbManager, logBuffer)
     }
 
     func testDevicePickerHelpers() {
@@ -153,7 +154,8 @@ final class AppViewTests: XCTestCase {
             .environmentObject(logBuffer))
 
         host(ToolbarView(searchText: .constant(""), selectedLevels: .constant([.info, .error]), isSearching: .constant(false))
-            .environmentObject(adbManager))
+            .environmentObject(adbManager)
+            .environmentObject(logBuffer))
 
         host(StatusBarView()
             .environmentObject(adbManager)
