@@ -9,6 +9,8 @@ public class ADBManager: ObservableObject {
     @Published public var selectedDevice: Device?
     @Published public var isConnected: Bool = false
     @Published public var connectionError: String?
+    @Published public var packages: [String] = []
+    @Published public var packageUIDs: [String: Int] = [:]
     
     private var process: Process?
     private var outputPipe: Pipe?
@@ -116,7 +118,7 @@ public class ADBManager: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         
-        var arguments = ["adb", "-s", device.serial, "logcat", "-v", "threadtime"]
+        var arguments = ["adb", "-s", device.serial, "logcat", "-v", "threadtime,uid"]
         if let filter = filter, !filter.isEmpty {
             arguments.append(filter)
         }
@@ -244,21 +246,50 @@ public class ADBManager: ObservableObject {
         return Int(trimmed)
     }
     
-    /// Lists installed packages
-    public func listPackages() async throws -> [String] {
+    /// Lists installed packages with their UIDs (third-party only by default for a manageable list)
+    public func listPackagesWithUIDs(thirdPartyOnly: Bool = true) async throws -> [(package: String, uid: Int)] {
         guard let device = selectedDevice else {
             throw ADBError.noDeviceSelected
         }
-        
-        let output = try await executeADBCommand([
-            "-s", device.serial, "shell", "pm", "list", "packages"
-        ])
-        
+
+        var args = ["-s", device.serial, "shell", "pm", "list", "packages", "-U"]
+        if thirdPartyOnly {
+            args.append("-3")
+        }
+
+        let output = try await executeADBCommand(args)
+
+        // Format: "package:com.example.app uid:10265"
         return output.components(separatedBy: .newlines)
-            .compactMap { line -> String? in
-                guard line.hasPrefix("package:") else { return nil }
-                return String(line.dropFirst(8))
+            .compactMap { line -> (String, Int)? in
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.hasPrefix("package:") else { return nil }
+
+                let parts = trimmed.components(separatedBy: " uid:")
+                guard parts.count == 2,
+                      let uid = Int(parts[1]) else { return nil }
+
+                let package = String(parts[0].dropFirst(8)) // Remove "package:"
+                return (package, uid)
             }
+            .sorted { $0.0 < $1.0 }
+    }
+
+    /// Refreshes the package list and UIDs for the selected device
+    public func refreshPackages() async {
+        do {
+            let packagesWithUIDs = try await listPackagesWithUIDs()
+            packages = packagesWithUIDs.map { $0.package }
+            packageUIDs = Dictionary(uniqueKeysWithValues: packagesWithUIDs)
+        } catch {
+            packages = []
+            packageUIDs = [:]
+        }
+    }
+
+    /// Gets the UID for a package name
+    public func getUID(for package: String) -> Int? {
+        return packageUIDs[package]
     }
     
     // MARK: - Private Methods

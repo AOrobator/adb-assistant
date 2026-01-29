@@ -10,7 +10,7 @@ public class LogBuffer: ObservableObject {
     @Published public private(set) var isPaused: Bool = false
     @Published public private(set) var newLogCount: Int = 0
     @Published public private(set) var droppedWhilePaused: Int = 0
-    
+
     public let maxSize: Int
     @Published public private(set) var isFiltering: Bool = false
 
@@ -247,6 +247,8 @@ public struct LogFilter: Equatable {
     public var levels: Set<LogLevel>
     public var tags: Set<String>
     public var excludeTags: Set<String>
+    /// UID filter: nil = no filter (show all), non-nil = filter by this UID
+    public var uid: Int?
     public var searchQuery: String?
     public var caseSensitive: Bool
     public var useRegex: Bool
@@ -255,6 +257,7 @@ public struct LogFilter: Equatable {
         levels: Set<LogLevel> = Set(LogLevel.allCases),
         tags: Set<String> = [],
         excludeTags: Set<String> = [],
+        uid: Int? = nil,
         searchQuery: String? = nil,
         caseSensitive: Bool = false,
         useRegex: Bool = false
@@ -262,6 +265,7 @@ public struct LogFilter: Equatable {
         self.levels = levels
         self.tags = tags
         self.excludeTags = excludeTags
+        self.uid = uid
         self.searchQuery = searchQuery
         self.caseSensitive = caseSensitive
         self.useRegex = useRegex
@@ -273,21 +277,26 @@ public struct LogFilter: Equatable {
         if !levels.isEmpty && !levels.contains(entry.level) {
             return false
         }
-        
+
+        // UID filter - nil means no filter
+        if let uid = uid, entry.uid != uid {
+            return false
+        }
+
         // Tag filter
         if !tags.isEmpty && !tags.contains(entry.tag) {
             return false
         }
-        
+
         // Exclude tags
         if excludeTags.contains(entry.tag) {
             return false
         }
-        
+
         // Search query
         if let query = searchQuery, !query.isEmpty {
             let options: String.CompareOptions = caseSensitive ? [] : .caseInsensitive
-            
+
             if useRegex {
                 // TODO: Implement regex matching
                 return entry.message.range(of: query, options: options) != nil ||
@@ -297,7 +306,7 @@ public struct LogFilter: Equatable {
                        entry.tag.range(of: query, options: options) != nil
             }
         }
-        
+
         return true
     }
 }

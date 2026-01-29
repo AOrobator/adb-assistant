@@ -6,14 +6,18 @@ struct ToolbarView: View {
     @EnvironmentObject var logBuffer: LogBuffer
     @Binding var searchText: String
     @Binding var selectedLevels: Set<LogLevel>
+    @Binding var selectedPackage: String?
     @Binding var isSearching: Bool
     @FocusState var isSearchFocused: Bool
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Device picker
             DevicePicker()
-            
+
+            // Package picker
+            PackagePicker(selectedPackage: $selectedPackage)
+
             Divider()
                 .frame(height: 20)
             
@@ -152,6 +156,62 @@ struct DevicePicker: View {
     static func refreshDevices(_ adbManager: ADBManager) {
         Task {
             await adbManager.refreshDevices()
+        }
+    }
+}
+
+struct PackagePicker: View {
+    @EnvironmentObject var adbManager: ADBManager
+    @Binding var selectedPackage: String?
+
+    var body: some View {
+        Menu {
+            Button(action: { selectedPackage = nil }) {
+                HStack {
+                    Text("All Packages")
+                    if selectedPackage == nil {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+
+            if !adbManager.packages.isEmpty {
+                Divider()
+
+                ForEach(adbManager.packages, id: \.self) { package in
+                    Button(action: { selectedPackage = package }) {
+                        HStack {
+                            Text(package)
+                            if package == selectedPackage {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            Button("Refresh", action: { Self.refreshPackages(adbManager) })
+        } label: {
+            HStack {
+                Image(systemName: "shippingbox")
+                Text(selectedPackage ?? "All Packages")
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(6)
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    static func refreshPackages(_ adbManager: ADBManager) {
+        Task {
+            await adbManager.refreshPackages()
         }
     }
 }

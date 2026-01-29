@@ -6,21 +6,23 @@ public struct LogEntry: Identifiable, Equatable, Codable, Hashable {
     public let timestamp: Date
     public let level: LogLevel
     public let tag: String
+    public let uid: Int
     public let pid: Int
     public let tid: Int
     public let message: String
     public let rawLine: String
-    
+
     /// Computed property to detect if message contains JSON
     public var containsJSON: Bool {
         JSONDetector.containsJSON(message)
     }
-    
+
     public init(
         id: UUID = UUID(),
         timestamp: Date,
         level: LogLevel,
         tag: String,
+        uid: Int,
         pid: Int,
         tid: Int,
         message: String,
@@ -30,6 +32,7 @@ public struct LogEntry: Identifiable, Equatable, Codable, Hashable {
         self.timestamp = timestamp
         self.level = level
         self.tag = tag
+        self.uid = uid
         self.pid = pid
         self.tid = tid
         self.message = message
