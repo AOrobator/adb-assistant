@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+DerivedData/
+*.xcarchive
+
+# Distribution (keep .zip, ignore unzipped app)
+dist/adb-assistant.app/
+
+# Xcode
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
