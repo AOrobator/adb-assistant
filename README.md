@@ -27,14 +27,42 @@ Replace Android Studio's logcat for 90% of debugging workflows. Pidcat with a GU
 - Native ADB integration via `Process`
 - Circular buffer for high-volume log streaming
 
-## Building
+## Installation
+
+### Option 1: Pre-built Binary
+
+Download [adb-assistant.zip](dist/adb-assistant.zip) and unzip it.
+
+**Note:** Since the app isn't signed with an Apple Developer certificate, macOS will block it. To run it:
 
 ```bash
-# Generate Xcode project
-./build.sh
+# Remove quarantine attribute
+xattr -cr /path/to/adb-assistant.app
 
-# Open in Xcode
+# Then right-click the app and select "Open"
+```
+
+### Option 2: Build from Source
+
+Requires Xcode 15+ and macOS 13+.
+
+```bash
+# Clone the repo
+git clone https://github.com/AOrobator/adb-assistant.git
+cd adb-assistant
+
+# Build and run
+xcodebuild -scheme adb-assistant -configuration Release build
+
+# The app will be at:
+# ~/Library/Developer/Xcode/DerivedData/adb-assistant-*/Build/Products/Release/adb-assistant.app
+```
+
+Or open in Xcode:
+
+```bash
 open adb-assistant.xcodeproj
+# Then press ⌘R to build and run
 ```
 
 ## Documentation
