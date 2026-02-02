@@ -51,19 +51,14 @@ Requires Xcode 15+ and macOS 13+.
 git clone https://github.com/AOrobator/adb-assistant.git
 cd adb-assistant
 
-# Build and run
-xcodebuild -scheme adb-assistant -configuration Release build
+# Build
+xcodebuild -project adb-assistant.xcodeproj -scheme adb-assistant -configuration Debug build
 
-# The app will be at:
-# ~/Library/Developer/Xcode/DerivedData/adb-assistant-*/Build/Products/Release/adb-assistant.app
+# Run
+open ~/Library/Developer/Xcode/DerivedData/adb-assistant-*/Build/Products/Debug/adb-assistant.app
 ```
 
-Or open in Xcode:
-
-```bash
-open adb-assistant.xcodeproj
-# Then press ⌘R to build and run
-```
+Or open `adb-assistant.xcodeproj` in Xcode and press ⌘R.
 
 ## Documentation
 
